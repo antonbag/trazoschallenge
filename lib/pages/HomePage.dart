@@ -26,9 +26,14 @@ Widget _lista() {
       future: menuProvider.cargarHomeData(),
       builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
         //print('builder!');
-        return GridView.count(
+/*         return GridView.count(
           scrollDirection: Axis.vertical,
           crossAxisCount: 2,
+          children: _listaItems(snapshot.data!, context),
+        ); */
+ 
+        return ListView(
+          scrollDirection: Axis.vertical, 
           children: _listaItems(snapshot.data!, context),
         );
       });
@@ -38,16 +43,15 @@ List<Widget> _listaItems(List<dynamic> datos, BuildContext context) {
   final List<Widget> listado = [];
 
   datos.forEach((opt) {
-
     final widgetTemp = ListTile(
-      title: Text(opt['texto'], style: Theme.of(context).textTheme.headline5),
-      leading: getIcon(opt['icon'], opt['color']),
-      trailing: Icon(Icons.arrow_forward_outlined, color: Colors.amber),
-      onTap: () {
-        //final route = MaterialPageRoute(builder: (context) => CounterPage());
+        title: Text(opt['texto'], style: Theme.of(context).textTheme.headline5),
+        leading: getIcon(opt['icon'], opt['color']),
+        trailing: Icon(Icons.arrow_forward_outlined, color: Colors.amber),
+        onTap: () {
+          //final route = MaterialPageRoute(builder: (context) => CounterPage());
           Navigator.pushNamed(context, opt['ruta']);
-      });
-  
+        });
+
     listado..add(widgetTemp)..add(Divider());
   });
 

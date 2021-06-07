@@ -8,8 +8,8 @@ Map<String, WidgetBuilder> getApplicationsRoutes() {
 
   
   return <String, WidgetBuilder>{
-    '/': (BuildContext context) => HomePage(),
-    'canvas': (BuildContext context) => CanvasPage(),
+    'home': (BuildContext context) => HomePage(),
+    '/': (BuildContext context) => CanvasPage(),
     'gyro': (BuildContext context) => GyroPage(),
   };
   
