@@ -14,6 +14,9 @@ class MyApp extends StatelessWidget {
       //home: PeliculaDetalle(),
       initialRoute: '/',
       routes: getApplicationsRoutes(),
+      
     );
+    
   }
+  
 }

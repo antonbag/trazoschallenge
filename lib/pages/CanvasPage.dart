@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trazosv1/providers/globalData.dart';
 import 'dart:convert';
-import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -11,19 +10,18 @@ import 'package:trazosv1/utils/dataTools.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 final String wsAddress =
-    'ws://' + globalData.serverURL + ':' + globalData.serverPORT;
+    'ws://' + GlobalData.serverURL + ':' + GlobalData.serverPORT;
 
 AppBar canvasAppBar = AppBar(
-  backgroundColor: Color(0xFFffffff),
+  backgroundColor: GlobalData.getCurrentColor(),
   centerTitle: true,
   title: Text("TRAZOS challenger | canvas",
-      style: TextStyle(color: Colors.blueAccent)),
+      style: TextStyle(color: Color(0xFFffffff))),
   elevation: 0,
   actions: [],
 );
 
 /// ******** STATEFUL
-
 class CanvasPage extends StatefulWidget {
   //const CanvasPage({Key key}) : super(key: key);
   @override
@@ -32,9 +30,11 @@ class CanvasPage extends StatefulWidget {
 
 class _CanvasPageState extends State<CanvasPage> {
   ByteData _img = ByteData(0);
-  var color = Colors.blue;
+  var color = GlobalData.getCurrentColor();
   var strokeWidth = 15.0;
   final _sign = GlobalKey<SignatureState>();
+
+  bool _envioDesactivado = true;
 
   /// *******************
   /// ********* SOCKET
@@ -47,6 +47,9 @@ class _CanvasPageState extends State<CanvasPage> {
     _channel.sink.add(jsonEncode(msg));
   }
 
+  /// *******************
+  /// ********* BUILD
+  /// *******************
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,8 +69,11 @@ class _CanvasPageState extends State<CanvasPage> {
                   onSign: () {
                     final sign = _sign.currentState;
                     //print( '${sign!.points}');
-                    debugPrint(
-                        '${sign!.points.length} points in the signature');
+                    debugPrint('${sign!.points.length} puntos');
+                    
+                    setState(() {
+                      _envioDesactivado = false;
+                    });
                   },
                   backgroundPainter: _WatermarkPaint("1.0", "1.0"),
                   strokeWidth: strokeWidth,
@@ -81,14 +87,16 @@ class _CanvasPageState extends State<CanvasPage> {
               : SizedBox(
                   //maxHeight: 200.0,
                   child: Container(
-                      padding: EdgeInsets.all(0),
-                      color: Colors.amber,
+                      padding: EdgeInsets.all(10),
+                      color: Colors.grey[300],
                       child: Image.memory(_img.buffer.asUint8List()))),
           Column(
             children: <Widget>[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
+                  /// ********* Papelera
+
                   MaterialButton(
                       color: Colors.white,
                       onPressed: () {
@@ -98,7 +106,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         setState(() {
                           _img = ByteData(0);
                         });
-                        debugPrint("cleared");
+                        debugPrint("limpio!");
                       },
                       child: Row(
                         children: [
@@ -109,43 +117,52 @@ class _CanvasPageState extends State<CanvasPage> {
                   Expanded(
                     child: Container(
                       margin: EdgeInsets.only(left: 10.0, right: 10.0),
+
+                      /// ********* Enviar button
                       child: MaterialButton(
                           color: Colors.green,
-                          onPressed: () async {
-                            final sign = _sign.currentState;
+                          onPressed: _envioDesactivado
+                              ? null
+                              : () async {
+                                  final sign = _sign.currentState;
 
-                            //retrieve image data, do whatever you want with it (send to server, save locally...)
-                            final image = await sign!.getData();
-                            var data = await image.toByteData(
-                                format: ui.ImageByteFormat.png);
+                                  //retrieve image data, do whatever you want with it (send to server, save locally...)
+                                  final image = await sign!.getData();
 
-                            final encoded =
-                                base64.encode(data!.buffer.asUint8List());
+                                  if (sign.points.length == 0) return;
 
-                            setState(() {
-                              _img = data;
-                            });
+                                  var data = await image.toByteData(
+                                      format: ui.ImageByteFormat.png);
 
-                            //final List<String> listado = sign.points;
-                            final listadoPuntos = offsetToJson(sign.points);
-                            
+                                  final encoded =
+                                      base64.encode(data!.buffer.asUint8List());
 
-                            final Map<String, dynamic> paraEnviar = {
-                              'client': globalData.clientNumber,
-                              'component': "canvas",
-                              'tipo': "base64",
-                              'data': encoded,
-                              'extra': listadoPuntos
-                            };
+                                  setState(() {
+                                    _img = data;
+                                    _envioDesactivado = true;
+                                  });
 
-                            _sendMessage(paraEnviar);
+                                  //final List<String> listado = sign.points;
+                                  final listadoPuntos =
+                                      offsetToJson(sign.points);
 
-                            debugPrint("onPressed " + encoded);
+                                  final Map<String, dynamic> paraEnviar = {
+                                    'from': 'flutter',
+                                    'player': GlobalData.playerNumber,
+                                    'component': "canvas",
+                                    'task': "trazo",
+                                    'data': encoded,
+                                    'extra': listadoPuntos
+                                  };
 
-                            sign.clear();
-                            //print all the base64 data
-                            //printWrapped(encoded);
-                          },
+                                  _sendMessage(paraEnviar);
+
+                                  debugPrint("onPressed " + encoded);
+
+                                  sign.clear();
+                                  //print all the base64 data
+                                  //printWrapped(encoded);
+                                },
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -156,7 +173,7 @@ class _CanvasPageState extends State<CanvasPage> {
                     ),
                   ),
                   MaterialButton(
-                      onPressed: () => globalData.printCurrentServer(),
+                      onPressed: () => GlobalData.printCurrentServer(),
                       child: Text("5"))
                 ],
               ),
@@ -193,10 +210,10 @@ class _CanvasPageState extends State<CanvasPage> {
     );
   }
 
-  void printWrapped(String text) {
+/*   void printWrapped(String text) {
     final pattern = RegExp('.{1,800}'); // 800 is the size of each chunk
     pattern.allMatches(text).forEach((match) => print(match.group(0)));
-  }
+  } */
 
   /// ********* Cierro el canal cuando me voy
   @override
@@ -221,6 +238,7 @@ class _WatermarkPaint extends CustomPainter {
 
   @override
   bool shouldRepaint(_WatermarkPaint oldDelegate) {
+    print("ShouldRepaint!");
     return oldDelegate != this;
   }
 

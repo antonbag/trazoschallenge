@@ -12,6 +12,12 @@
             "icon" : "tune",
             "texto": "gyro challenge",
             "color": "0xff123456"
+        },
+        {
+            "ruta" : "qr",
+            "icon" : "tune",
+            "texto": "qr lector",
+            "color": "0xff123456"
         } 
     ]
 }

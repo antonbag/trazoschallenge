@@ -31,9 +31,9 @@ Widget _lista() {
           crossAxisCount: 2,
           children: _listaItems(snapshot.data!, context),
         ); */
- 
+
         return ListView(
-          scrollDirection: Axis.vertical, 
+          scrollDirection: Axis.vertical,
           children: _listaItems(snapshot.data!, context),
         );
       });
@@ -49,6 +49,7 @@ List<Widget> _listaItems(List<dynamic> datos, BuildContext context) {
         trailing: Icon(Icons.arrow_forward_outlined, color: Colors.amber),
         onTap: () {
           //final route = MaterialPageRoute(builder: (context) => CounterPage());
+          print(opt['ruta']);
           Navigator.pushNamed(context, opt['ruta']);
         });
 
