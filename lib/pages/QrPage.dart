@@ -6,6 +6,9 @@ import 'package:trazosv1/providers/globalData.dart';
 import 'CanvasPage.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+final String wsAddress =
+    'ws://' + GlobalData.serverURL + ':' + GlobalData.serverPORT;
+
 AppBar qrAppBar = AppBar(
   backgroundColor: Color(0xFFffffff),
   centerTitle: true,
@@ -41,6 +44,7 @@ class _QrBuilderState extends State<QrBuilder> {
 
   bool _hayDatos = false;
   bool _datosCorrectos = false;
+  bool _wsOpened = false;
 
   final botonFightStyle = ElevatedButton.styleFrom(
       primary: Colors.orange, textStyle: const TextStyle(fontSize: 50));
@@ -52,16 +56,40 @@ class _QrBuilderState extends State<QrBuilder> {
   /// *******************
   /// ********* SOCKET
   /// *******************
-  final _channel = WebSocketChannel.connect(
-    Uri.parse(wsAddress),
-  );
+  WebSocketChannel? _channel;
 
-  void _sendMessage(Map<String, dynamic> msg) {
-    _channel.sink.add(jsonEncode(msg));
+  //en realidad no creo que haga falta un future para esto, pero así me acostumbro a la sintaxis
+  _sendMessage(Map<String, dynamic> msg) {
+    //si el canal no esta abierto mantengo la variable _wsOpened en false
+    _channel == null ? _wsOpened = false : _channel!.sink.add(jsonEncode(msg));
+    print("send_mensaje ok");
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
+    /*
+    final Map<String, dynamic> chocalaMsg = {
+      'from': 'flutter',
+      'player': GlobalData.playerNumber,
+      'component': "qr",
+      'task': "hola",
+      'data': ""
+    };
+
+    cambiaSocket()
+      .then((value) => () {
+            _sendMessage(chocalaMsg);
+          })
+      .then((value) => () {
+            setState(() {
+              print("hay datos!!");
+              _hayDatos = true;
+            });
+            print("hay datos:"+_hayDatos.toString());
+    });
+    */
+
     return Scaffold(
       appBar: qrAppBar,
       body: Column(
@@ -70,48 +98,73 @@ class _QrBuilderState extends State<QrBuilder> {
           //instrucciones o info del jugador si no hay datos
           _hayDatos == false ? Instrucciones() : InfoPlayer(),
 
-          StreamBuilder(
-            stream: _channel.stream,
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                final saludoData = json.decode(snapshot.data.toString());
-                saludoData!["status"] == "ok"
-                    ? _datosCorrectos = true
-                    : _datosCorrectos = false;
-                
-                //devuelvo el stream
-                return 
-                  _datosCorrectos == false
-                  ? Container(child: Text(saludoData!["mensaje"]),)
-                  : Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4, bottom: 32),
-                        child: Container(child: Text(saludoData!["mensaje"]),),
-                      ),
-                      ElevatedButton(
-                          style: botonFightStyle,
-                          onPressed: () {
-                            final route =
-                                MaterialPageRoute(builder: (context) => CanvasPage());
-                            Navigator.push(context, route);
-                          },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.gamepad),
-                              Text("FIGHT"),
-                            ],
-                          )),
-                    ],
-                  );
+          _wsOpened == false
+              ? Container(
+                  //child: Text("_wsOpened:" + _wsOpened.toString()),
+                  )
+              : StreamBuilder(
+                  stream: _channel!.stream,
+                  builder: (context, snapshot) {
+                    print(snapshot.hasData.toString());
+                    if (snapshot.hasData) {
+                      final saludoData = json.decode(snapshot.data.toString());
+                      saludoData!["status"] == "ok"
+                          ? _datosCorrectos = true
+                          : _datosCorrectos = false;
 
-                //return Text(snapshot.hasData ? saludoData!["mensaje"] : '');
-              }
-              return Container();
-            },
-          ),
+                      //devuelvo el stream
+                      return _datosCorrectos == false
+                          ? Container(
+                              child: Text(saludoData!["mensaje"]),
+                            )
+                          : Column(
+                              children: [
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.only(top: 4, bottom: 32),
+                                  child: Container(
+                                    child: Text(saludoData!["mensaje"]),
+                                  ),
+                                ),
+                                ElevatedButton(
+                                    style: botonFightStyle,
+                                    onPressed: () {
+                                      final Map<String, dynamic> fightMsg = {
+                                        'from': 'flutter',
+                                        'player': GlobalData.playerNumber,
+                                        'component': "qr",
+                                        'task': "fight",
+                                        'data': ""
+                                      };
+
+                                      final route = MaterialPageRoute(
+                                          builder: (context) => CanvasPage());
+
+                                      //registro player
+                                      _sendMessage(fightMsg);
+                                      print("Vamos al canvas...");
+                                      Navigator.push(context, route);
+                                    },
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment:
+                                        MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.gamepad),
+                                          Text("FIGHT"),
+                                        ],
+                                    )),
+                              ],
+                            );
+
+                      //return Text(snapshot.hasData ? saludoData!["mensaje"] : '');
+                    }
+                    return Container(
+                        child: Text(
+                          "No puedo conectar a " + GlobalData.serverURL));
+                  },
+                ),
+          develModeButton(),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Container(
@@ -155,12 +208,89 @@ class _QrBuilderState extends State<QrBuilder> {
     );
   }
 
+  Widget develModeButton() {
+    if (GlobalData.devel) {
+      GlobalData.serverURL = "84.126.227.189";
+      GlobalData.playerNumber = 1;
+    }
+
+    return GlobalData.devel == false
+        ? Container()
+        : Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+                alignment: Alignment.center,
+                child: ElevatedButton(
+                    onPressed: () {
+                      //mi ip publica
+                      /*
+                      final route =
+                          MaterialPageRoute(builder: (context) => CanvasPage());
+                      Navigator.push(context, route);
+                      */
+
+                      //*CHÓCALA
+                      //*llamo al server para cerciorarme de que todo esta bien
+                      final Map<String, dynamic> chocalaMsg = {
+                        'from': 'flutter',
+                        'player': GlobalData.playerNumber,
+                        'component': "qr",
+                        'task': "hola",
+                        'data': ""
+                      };
+
+                      cambiaSocket().then((value) => () {
+                            _sendMessage(chocalaMsg);
+                            GlobalData.printCurrentServer();
+                          });
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.developer_mode),
+                            Text(
+                                "Devel:" +
+                                    GlobalData.serverURL +
+                                    ":" +
+                                    GlobalData.serverPORT,
+                                style: TextStyle(fontSize: 10)),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text("Player:" + GlobalData.playerNumber.toString(),
+                                style: TextStyle(fontSize: 10)),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text("_haydatos:" + _hayDatos.toString(),
+                                style: TextStyle(fontSize: 10)),
+                          ],
+                        )
+                      ],
+                    ))),
+          );
+  }
+
   /// ********* Cierro el canal cuando me voy
   @override
   void dispose() {
-    _channel.sink.close();
+    _channel!.sink.close();
     super.dispose();
   }
+
+
+
+
+
+
+
+
+
 
   Future<void> _scanCode() async {
     print(' Programa lanzado');
@@ -181,14 +311,24 @@ class _QrBuilderState extends State<QrBuilder> {
 
     GlobalData.printCurrentServer();
 
-/*     print(result.type); // Tipo de resultado: barcode, cancelled, failed
+/*  print(result.type); // Tipo de resultado: barcode, cancelled, failed
     print(result.rawContent); // Contenido del barcode
     print(result.format); // Formato del barcode
     print(result
         .formatNote); */ // Formato If a unknown format was scanned this field contain
 
-    //*CHÓCALA
-    //*llamo al server para cerciorarme de que todo esta bien
+    //en realidad no creo que haga falta future... pero así me acostumbro a su sintaxis
+    cambiaSocket().then((value) => () {
+      print('QR terminado');
+    });
+  }
+
+  //CAMBIA SOCKET
+
+  Future cambiaSocket() async {
+    _channel = WebSocketChannel.connect(Uri.parse(wsAddress));
+    print("cambia socket!...");
+
     final Map<String, dynamic> chocalaMsg = {
       'from': 'flutter',
       'player': GlobalData.playerNumber,
@@ -196,14 +336,14 @@ class _QrBuilderState extends State<QrBuilder> {
       'task': "hola",
       'data': ""
     };
-    _sendMessage(chocalaMsg);
-
+    await _sendMessage(chocalaMsg);
+    print("mensaje de bienvenida enviado");
     setState(() {
       //*cambio el estado
       _hayDatos = true;
+      _wsOpened = true;
     });
-
-    print('QR terminado');
+    return true;
   }
 }
 
@@ -226,7 +366,7 @@ class Instrucciones extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: Container(
             alignment: Alignment.center,
-            child: Text("Escanea el código para comenzar a jugar...etc"),
+            child: Text("Escanea el código para comenzar a jugar... etc"),
           ),
         ),
         const Divider(),

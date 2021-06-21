@@ -2,7 +2,7 @@
     package="com.example.trazosv1">
    <application
         android:label="trazosv1"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"

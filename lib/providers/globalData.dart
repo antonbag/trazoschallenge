@@ -11,12 +11,17 @@ class GlobalData {
 
   static int playerNumber = 0;
 
+  static bool devel = false;
+
   //https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=192.168.1.50:4445-goal1
 
   static var serverURL = "10.0.2.2";
   static var serverPORT = "4445";
 
+  //static var wsAddress = serverURL;
+
   static printCurrentServer() {
+    print("**************CURRENT SERVER *********** ");
     print(serverURL +
         ":" +
         serverPORT +
@@ -55,11 +60,10 @@ class GlobalData {
   }
 
   static getCurrentColor() {
-
     Color currentColor = playerNumber == 1 ? player1Color : player2Color;
-    
+
     if (playerNumber == 0) currentColor = player0Color;
-    
+
     return currentColor;
   }
 
