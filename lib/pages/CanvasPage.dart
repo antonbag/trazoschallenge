@@ -54,10 +54,11 @@ class _CanvasPageState extends State<CanvasPage> {
   /// *******************
   /// ********* SOCKET
   /// *******************
+  /// Aquí ya tenemos el socket final, por lo que no hace falta el circo de comprobar ws
   final _channel = WebSocketChannel.connect(
     Uri.parse(wsAddress),
   );
-
+  //funcion de envio demensajes
   void _sendMessage(Map<String, dynamic> msg) {
     _channel.sink.add(jsonEncode(msg));
   }
@@ -90,7 +91,6 @@ class _CanvasPageState extends State<CanvasPage> {
 
     return Scaffold(
       appBar: canvasAppBar,
-      
       body: Column(
         children: <Widget>[
           !_gyroTime
@@ -154,6 +154,7 @@ class _CanvasPageState extends State<CanvasPage> {
                       child: Container(
                           padding: EdgeInsets.all(10),
                           //color: Colors.white,
+                          //la imagen de mirilla. Al principio era la propia imagen generada, pero tardaba mucho
                           child: Image.network(
                               "https://image.flaticon.com/icons/png/256/68/68837.png"))
                       //child: Image.memory(_img.buffer.asUint8List())),
@@ -164,7 +165,6 @@ class _CanvasPageState extends State<CanvasPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   /// ********* Papelera
-
                   papelera(),
                   Expanded(
                     child: Container(
@@ -226,13 +226,14 @@ class _CanvasPageState extends State<CanvasPage> {
     final sign = _sign.currentState;
     final image = await sign!.getData();
     if (sign.points.length == 0) return;
-
+    //espero  a que se codifique
     var data = await image.toByteData(format: ui.ImageByteFormat.png);
 
     final encoded = base64.encode(data!.buffer.asUint8List());
 
     _currentTime = 3;
 
+    //ya puedo actualizar el estado
     setState(() {
       _img = data;
       _envioDesactivado = true;
@@ -241,6 +242,8 @@ class _CanvasPageState extends State<CanvasPage> {
     });
 
     //final List<String> listado = sign.points;
+    //Convierto los puntos a json para enviarlos
+    //Al final no lo uso, pero podría ser interesante para algo
     final listadoPuntos = offsetToJson(sign.points);
 
     final Map<String, dynamic> paraEnviar = {
@@ -254,23 +257,27 @@ class _CanvasPageState extends State<CanvasPage> {
 
     _sendMessage(paraEnviar);
 
+    //comienzo el gyro
     startGyro();
 
+    //borro el canvas
     sign.clear();
     //print all the base64 data
     //printWrapped(encoded);
   }
 
+  //Contador de tiempo para dibujar... el usuario tiene 5 segundos para dibujar.
   Text contadorDown() {
     return Text(_currentTime.toString());
   }
+
 
   /// *******************
   /// ********* ███۞███████ ]▄▄▄▄▄▄▄▄▄▄▄▄▃
   /// *▂▄▅█████████▅▄▃▂
   /// *I███████████████████].
   /// *◥⊙▲⊙▲⊙▲⊙▲⊙▲⊙▲⊙◤...
-  /// *******************
+  /// ****PAPELERA*******
   MaterialButton papelera() {
     return MaterialButton(
         color: Colors.white,
@@ -312,6 +319,8 @@ class _CanvasPageState extends State<CanvasPage> {
     double _gyroscopeOldZ = 0.0;
     double _gyroscopeZ = 0.0;
 
+    //Añado a la suscripcion los eventos del gyro
+
     _streamSubscriptions.add(
       gyroscopeEvents.listen(
         (GyroscopeEvent event) {
@@ -337,7 +346,7 @@ class _CanvasPageState extends State<CanvasPage> {
               'player': GlobalData.playerNumber,
               'component': "gyro",
               'task': "gira",
-              'data': _gyroInDegrees
+              'data': _gyroInDegrees.toString()
             };
 
             _sendMessage(paraEnviar);
@@ -387,10 +396,10 @@ class _CanvasPageState extends State<CanvasPage> {
     );
     */
 
-
   /// *******************
   /// ********* INITSTATE
   /// *******************
+  /// requerido sobretodo por el timer
   @override
   void initState() {
     super.initState();
@@ -406,10 +415,11 @@ class _CanvasPageState extends State<CanvasPage> {
       }
       //Si el temporizador esta activado, resto, si no, 5 seg
       _initTimer ? _currentTimeTemp -= 1 : _currentTimeTemp = 5;
-
-      setState(() {
-        _currentTime = _currentTimeTemp;
-      });
+      if (mounted) {
+        setState(() {
+          _currentTime = _currentTimeTemp;
+        });
+      }
     });
   }
 
@@ -428,6 +438,10 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 }
 
+
+  /// *******************
+  /// ********* DIBUJINOS
+  /// *******************
 class _WatermarkPaint extends CustomPainter {
   final String price;
   final String watermark;

@@ -9,6 +9,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 final String wsAddress =
     'ws://' + GlobalData.serverURL + ':' + GlobalData.serverPORT;
 
+
+//La app bar
 AppBar qrAppBar = AppBar(
   backgroundColor: Color(0xFFffffff),
   centerTitle: true,
@@ -42,10 +44,12 @@ class _QrBuilderState extends State<QrBuilder> {
   //resultado del escaneo
   //ScanResult? _scanResult;
 
+
   bool _hayDatos = false;
   bool _datosCorrectos = false;
   bool _wsOpened = false;
 
+  //Estilos de los botones
   final botonFightStyle = ElevatedButton.styleFrom(
       primary: Colors.orange, textStyle: const TextStyle(fontSize: 50));
   final botonScanStyleActivado = ElevatedButton.styleFrom(
@@ -148,11 +152,11 @@ class _QrBuilderState extends State<QrBuilder> {
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.gamepad),
-                                          Text("FIGHT"),
-                                        ],
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.gamepad),
+                                        Text("FIGHT"),
+                                      ],
                                     )),
                               ],
                             );
@@ -161,9 +165,10 @@ class _QrBuilderState extends State<QrBuilder> {
                     }
                     return Container(
                         child: Text(
-                          "No puedo conectar a " + GlobalData.serverURL));
+                            "No puedo conectar a " + GlobalData.serverURL));
                   },
                 ),
+          //boton de desarrollo
           develModeButton(),
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -175,6 +180,7 @@ class _QrBuilderState extends State<QrBuilder> {
                         : botonScanStyleDesactivado,
                     onPressed: () {
                       //print("escanea!");
+
                       _scanCode();
                     },
                     child: Row(
@@ -283,15 +289,6 @@ class _QrBuilderState extends State<QrBuilder> {
     super.dispose();
   }
 
-
-
-
-
-
-
-
-
-
   Future<void> _scanCode() async {
     print(' Programa lanzado');
     // Lanzamos la función BarcodeScanner.scan y esperamos
@@ -300,27 +297,30 @@ class _QrBuilderState extends State<QrBuilder> {
 
     GlobalData.printCurrentServer();
 
-    //Separo la url del jugador
-    List explosion = result.rawContent.split(";");
+    //si no hay datos... prevengo que el usuario vaya atrás en el scaneo y de error
+    if (result.rawContent != '') {
+      //Separo la url del jugador
+      List explosion = result.rawContent.split(";");
 
-    //cambio los datos del servidor explosion[0] = ip:puerto
-    GlobalData.changeServerAndPort(explosion[0]);
+      //cambio los datos del servidor explosion[0] = ip:puerto
+      GlobalData.changeServerAndPort(explosion[0]);
 
-    //cambio los datos del player explosion[1] = goal1
-    GlobalData.changePlayer(explosion[1]);
+      //cambio los datos del player explosion[1] = goal1
+      GlobalData.changePlayer(explosion[1]);
 
-    GlobalData.printCurrentServer();
+      GlobalData.printCurrentServer();
 
-/*  print(result.type); // Tipo de resultado: barcode, cancelled, failed
-    print(result.rawContent); // Contenido del barcode
-    print(result.format); // Formato del barcode
-    print(result
-        .formatNote); */ // Formato If a unknown format was scanned this field contain
+      /*  print(result.type); // Tipo de resultado: barcode, cancelled, failed
+      print(result.rawContent); // Contenido del barcode
+      print(result.format); // Formato del barcode
+      print(result
+          .formatNote); */ // Formato If a unknown format was scanned this field contain
 
-    //en realidad no creo que haga falta future... pero así me acostumbro a su sintaxis
-    cambiaSocket().then((value) => () {
-      print('QR terminado');
-    });
+      //en realidad no creo que haga falta future... pero así me acostumbro a su sintaxis
+      cambiaSocket().then((value) => () {
+            print('QR terminado');
+          });
+    }
   }
 
   //CAMBIA SOCKET
@@ -338,11 +338,13 @@ class _QrBuilderState extends State<QrBuilder> {
     };
     await _sendMessage(chocalaMsg);
     print("mensaje de bienvenida enviado");
-    setState(() {
-      //*cambio el estado
-      _hayDatos = true;
-      _wsOpened = true;
-    });
+    if (mounted) {
+      setState(() {
+        //*cambio el estado
+        _hayDatos = true;
+        _wsOpened = true;
+      });
+    }
     return true;
   }
 }

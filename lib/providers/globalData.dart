@@ -40,6 +40,13 @@ class GlobalData {
   static changeServerAndPort(String completeAddress) {
     //serverPORT = newServerPORT;
 
+    print("changeServerAndPort");
+    print(completeAddress);
+
+
+    if (completeAddress == "") {
+      return;
+    }
     List explosion = completeAddress.split(":");
 
     serverURL = explosion[0];
